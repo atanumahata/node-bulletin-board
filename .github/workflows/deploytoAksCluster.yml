@@ -1,0 +1,50 @@
+on: [push]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    
+    - uses: azure/docker-login@v1
+      with:
+        login-server: cntnrrgtrnodebulletin.azurecr.io
+        username: ${{ secrets.acr_cntnrrgtrnodebulletin_username }}
+        password: ${{ secrets.acr_cntnrrgtrnodebulletin_password }}
+    
+    - name: Build and push image to ACR
+      id: build-image
+      run: |
+        docker build "$GITHUB_WORKSPACE/bulletin-board-app" -f  "bulletin-board-app/Dockerfile" -t cntnrrgtrnodebulletin.azurecr.io/qbrntcsnodebulletin:${{ github.sha }}
+        docker push cntnrrgtrnodebulletin.azurecr.io/qbrntcsnodebulletin:${{ github.sha }}
+    
+    - uses: azure/k8s-set-context@v1
+      with:
+         kubeconfig: ${{ secrets.aks_qbrntcsnodebulletin_kubeConfig }}
+      id: login
+    
+    - name: Create namespace
+      run: |
+        namespacePresent=`kubectl get namespace | grep qbrntcsnodebulletind857 | wc -l`
+        if [ $namespacePresent -eq 0 ]
+        then
+            echo `kubectl create namespace qbrntcsnodebulletind857`
+        fi
+
+    - uses: azure/k8s-create-secret@v1
+      with:
+        namespace: qbrntcsnodebulletind857
+        container-registry-url: cntnrrgtrnodebulletin.azurecr.io
+        container-registry-username: ${{ secrets.acr_cntnrrgtrnodebulletin_username }}
+        container-registry-password: ${{ secrets.acr_cntnrrgtrnodebulletin_password }}
+        secret-name: qbrntcsnodebdockerauth
+       
+    - uses: azure/k8s-deploy@v1
+      with:
+        namespace: qbrntcsnodebulletind857
+        manifests: |
+          manifests/deployment.yml
+          manifests/service.yml
+        images: |
+          cntnrrgtrnodebulletin.azurecr.io/qbrntcsnodebulletin:${{ github.sha }}
+        imagepullsecrets: |
+          qbrntcsnodebdockerauth
