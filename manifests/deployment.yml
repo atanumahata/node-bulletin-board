@@ -1,0 +1,16 @@
+apiVersion : apps/v1beta1
+kind: Deployment
+metadata:
+  name: "qbrntcsnodebulletin"
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: "qbrntcsnodebulletin"
+    spec:
+      containers:
+        - name: "qbrntcsnodebulletin"
+          image: "cntnrrgtrnodebulletin.azurecr.io/qbrntcsnodebulletin"
+          ports:
+          - containerPort: 80
